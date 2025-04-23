@@ -2,26 +2,18 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_TOKEN = credentials('github-token')  // This can be used in other stages, like Docker auth
+        GITHUB_TOKEN = credentials('github-token')  // optional for other API use
     }
 
     stages {
         stage('Clone Repo') {
             steps {
-                git url: 'https://github.com/BhojanapuPavanKumar/java-app',
+                git url: 'https://github.com/BhojanapuPavanKumar/java-app.git',
                     credentialsId: 'github-token'
             }
         }
 
-        stage('Checkout') {
-            steps {
-                script {
-                    checkout scm
-                }
-            }
-        }
-
-        stage('Build') {
+        stage('Build with Maven') {
             steps {
                 sh 'mvn clean install'
             }
@@ -33,28 +25,23 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Deploy App') {
             steps {
                 script {
-                    // Example using stored credentials (if you store Docker Hub creds in Jenkins too)
-                    // withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    //     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
-                    //     sh 'docker push your-dockerhub-username/java-car-game'
-                    // }
-                }
-            }
-        }
+                    // Stop old container if running (optional cleanup)
+                    sh 'docker stop java-car-game-container || true'
+                    sh 'docker rm java-car-game-container || true'
 
-        stage('Deploy') {
-            steps {
-                sh 'docker run -d -p 8081:8080 java-car-game'
+                    // Run new container on port 8081 (since 8080 is used by Jenkins)
+                    sh 'docker run -d --name java-car-game-container -p 8081:8080 java-car-game'
+                }
             }
         }
     }
 
     post {
         always {
-            sh 'docker system prune -f'
+            echo 'Pipeline execution completed.'
         }
     }
 }
