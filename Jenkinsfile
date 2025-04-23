@@ -47,7 +47,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh 'docker run -d -p 8080:8080 java-car-game'
+                sh 'docker run -d -p 8081:8080 java-car-game'
             }
         }
     }
