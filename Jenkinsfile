@@ -2,14 +2,20 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_TOKEN = credentials('github-token')  // Your GitHub token
+        GITHUB_TOKEN = credentials('github-token')  // This can be used in other stages, like Docker auth
     }
 
     stages {
+        stage('Clone Repo') {
+            steps {
+                git url: 'https://github.com/BhojanapuPavanKumar/java-app',
+                    credentialsId: 'github-token'
+            }
+        }
+
         stage('Checkout') {
             steps {
                 script {
-                    // Checkout the GitHub repository
                     checkout scm
                 }
             }
@@ -17,48 +23,37 @@ pipeline {
 
         stage('Build') {
             steps {
-                script {
-                    // Build the project using Maven
-                    sh 'mvn clean install'
-                }
+                sh 'mvn clean install'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build the Docker image
-                    sh 'docker build -t java-car-game .'
-                }
+                sh 'docker build -t java-car-game .'
             }
         }
 
         stage('Push Docker Image') {
             steps {
                 script {
-                    // Log in to Docker Hub (if needed)
-                    // sh 'docker login -u <username> -p <password>'
-
-                    // Push Docker image to Docker Hub (optional)
-                    // sh 'docker push <your-image-name>'
+                    // Example using stored credentials (if you store Docker Hub creds in Jenkins too)
+                    // withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    //     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                    //     sh 'docker push your-dockerhub-username/java-car-game'
+                    // }
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                script {
-                    // You can add deployment scripts here (e.g., Docker run or AWS EC2 deploy)
-                    // For now, let's assume Docker is used to deploy
-                    sh 'docker run -d -p 8080:8080 java-car-game'
-                }
+                sh 'docker run -d -p 8080:8080 java-car-game'
             }
         }
     }
 
     post {
         always {
-            // Clean up Docker images (optional)
             sh 'docker system prune -f'
         }
     }
